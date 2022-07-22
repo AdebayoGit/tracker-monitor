@@ -2,12 +2,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:timeago/timeago.dart' as timeago;
+import 'package:viewer/controllers/trips_controller.dart';
+import 'package:viewer/views/records_view/views/records_search_delegate.dart';
 
 import '../../controllers/drivers_controller.dart';
 import '../../models/driver.dart';
 import '../../utils/app_theme.dart';
-import '../riders_view/views/driver_search_delegate.dart';
 
 class RecordsHome extends GetResponsiveView<DriversController> {
   RecordsHome({Key? key}) : super(key: key) {
@@ -31,7 +31,7 @@ class RecordsHome extends GetResponsiveView<DriversController> {
             onPressed: () {
               showSearch(
                 context: context,
-                delegate: RiderSearchView(),
+                delegate: RecordsSearchView(),
               );
             },
             icon: const Icon(Icons.search),
@@ -48,10 +48,11 @@ class RecordsHome extends GetResponsiveView<DriversController> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   Driver driver = controller.drivers[index];
+                  TripsController tripsController = Get.put(TripsController());
                   return Card(
                     child: ListTile(
                       onTap: () {
-                        controller.getDriversTrips(username: driver.username);
+                        tripsController.getDriversTrips(driver: driver);
                       },
                       leading: CachedNetworkImage(
                         height: 60,
@@ -121,35 +122,12 @@ class RecordsHome extends GetResponsiveView<DriversController> {
                       trailing: PopupMenuButton(
                         itemBuilder: (context) => [
                           PopupMenuItem(
-                            onTap: () {},
-                            value: 1,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                const Icon(
-                                  Icons.edit,
-                                  color: AppTheme.secondaryLightColor,
-                                ),
-                                Text("Edit", style: GoogleFonts.lato()),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            onTap: () async {
-                              await controller.delete(
-                                  username: driver.username);
+                            onTap: () {
+                              Future.delayed(const Duration(microseconds: 200), () => tripsController.getDriversTrips(driver: driver));
+
                             },
-                            value: 2,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                const Icon(
-                                  Icons.delete,
-                                  color: AppTheme.colorOrange,
-                                ),
-                                Text("Delete", style: GoogleFonts.lato()),
-                              ],
-                            ),
+                            value: 1,
+                            child: Text("View Records", style: GoogleFonts.lato()),
                           ),
                         ],
                       ),

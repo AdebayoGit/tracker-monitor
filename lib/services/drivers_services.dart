@@ -55,10 +55,6 @@ class DriverServices{
     }
   }
 
-  Stream<List<Trip>> getDriversTrips(String username) {
-    return ridersRef.doc(username).collection('trips').orderBy('createdAt').snapshots().map(Trip.tripsFromSnapshot);
-  }
-
   Stream<List<Driver>> get drivers {
     return ridersRef.snapshots().map(Driver.driversFromSnapshot);
   }

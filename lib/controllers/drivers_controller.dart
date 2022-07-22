@@ -18,8 +18,6 @@ class DriversController extends GetxController {
 
   final RxList<Driver> _driversList = <Driver>[].obs;
 
-  final RxList<Trip> _tripsList = <Trip>[].obs;
-
   RxInt driversCount = 0.obs;
 
   @override
@@ -30,8 +28,6 @@ class DriversController extends GetxController {
   }
 
   List<Driver> get drivers => _driversList;
-
-  List<Trip> get trips => _tripsList;
 
   Future<void> create({required String username, required String password,
         File? image}) async {
@@ -67,11 +63,6 @@ class DriversController extends GetxController {
     } else {
       return _driversList.where((i) => i.username.contains(query)).toList();
     }
-  }
-
-  void getDriversTrips({required String username}) {
-    _tripsList.bindStream(_services.getDriversTrips(username));
-    Get.to(() => TripsView(), transition: Transition.fadeIn, duration: const Duration(seconds: 1));
   }
 
   Future<File?> getCaptureImageSheet() async {
