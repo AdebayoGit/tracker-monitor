@@ -34,4 +34,12 @@ class ResponseHelpers{
         barrierDismissible: false,
     );
   }
+
+  static void showBottomSheet(Widget child){
+    Get.bottomSheet(
+        child,
+      backgroundColor: AppTheme.nearlyWhite,
+      elevation: 10,
+    );
+  }
 }

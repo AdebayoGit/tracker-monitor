@@ -96,8 +96,8 @@ class RecordsHome extends GetResponsiveView<DriversController> {
                       //subtitle: Text(getCurrency() + amt.nonSymbol),
                       subtitle: RichText(
                         maxLines: 1,
-                        textScaleFactor: 0.8,
-                        overflow: TextOverflow.fade,
+                        textScaleFactor: 0.7,
+                        overflow: TextOverflow.ellipsis,
                         text: TextSpan(
                             style: GoogleFonts.lato(
                               textStyle: Theme.of(context)
@@ -124,10 +124,9 @@ class RecordsHome extends GetResponsiveView<DriversController> {
                           PopupMenuItem(
                             onTap: () {
                               Future.delayed(const Duration(microseconds: 200), () => tripsController.getDriversTrips(driver: driver));
-
                             },
                             value: 1,
-                            child: Text("View Records", style: GoogleFonts.lato()),
+                            child: Text("View Trips", style: GoogleFonts.lato()),
                           ),
                         ],
                       ),

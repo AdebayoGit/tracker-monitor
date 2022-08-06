@@ -3,23 +3,19 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:viewer/controllers/drivers_controller.dart';
 
+import '../utils/app_theme.dart';
 import 'drivers_page_view_coponent.dart';
 
-class Home extends StatelessWidget {
-  const Home({Key? key}) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
-    return HomeBody();
+class Home extends GetResponsiveView<DriversController> {
+  Home({Key? key}) : super(key: key){
+    Get.lazyPut(() => DriversController());
   }
-}
-
-
-class HomeBody extends StatelessWidget {
-  HomeBody({Key? key}) : super(key: key);
   final Completer<GoogleMapController> _controller = Completer();
 
   @override
@@ -28,22 +24,38 @@ class HomeBody extends StatelessWidget {
       body: Stack(
         children: [
           Positioned.fill(
-            child: GoogleMap(
+            child: Obx(() => GoogleMap(
               mapType: MapType.normal,
+              markers: controller.markers,
+              zoomControlsEnabled: false,
               gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
                 Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
               },
               initialCameraPosition: const CameraPosition(
-                target: LatLng(37.42796133580664, -122.085749655962),
-                zoom: 14.4746,
+                target: LatLng(9.0820, 8.6753),
+                zoom: 5.38,
               ),
-              onMapCreated: (GoogleMapController controller) {
-                _controller.complete(controller);
+              onMapCreated: (GoogleMapController $controller) {
+                _controller.complete($controller);
+                controller.mapController = $controller;
               },
-            ),
+            ),),
           ),
           DriversPageView(),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: AppTheme.nearlyWhite,
+        tooltip: 'Default Location',
+        child: const Icon(Icons.filter_center_focus),
+        onPressed: () {
+          CameraPosition position = const CameraPosition(
+            target: LatLng(9.0820, 8.6753),
+            zoom: 5.38,
+          );
+          controller.mapController.animateCamera(CameraUpdate.newCameraPosition(position));
+        },
       ),
     );
   }

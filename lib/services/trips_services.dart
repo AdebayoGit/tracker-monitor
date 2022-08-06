@@ -1,11 +1,5 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:viewer/services/image_services.dart';
-
-import '../models/driver.dart';
-import '../models/response_status.dart';
+import '../models/location.dart';
 import '../models/trip.dart';
 
 class TripServices{
@@ -17,9 +11,17 @@ class TripServices{
     _tripsRef = _store.collection('riders');
   }
 
-
   Stream<List<Trip>> getDriversTrips(CollectionReference ref) {
     return ref.orderBy('createdAt').snapshots().map(Trip.tripsFromSnapshot);
   }
+  
+  Future<List<Location>> getCompletedTripLocations(CollectionReference ref) async{
+    return ref.orderBy('time').get().then((QuerySnapshot value) {
+      return Location.locationsFromSnapshot(value);
+    });
+  }
 
+  Stream<List<Location>> getTripProgress (CollectionReference ref) {
+    return ref.orderBy('time').snapshots().map(Location.locationsFromSnapshot);
+ }
 }

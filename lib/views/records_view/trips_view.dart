@@ -7,7 +7,7 @@ import 'package:viewer/views/records_view/views/trips_search_delegate.dart';
 import '../../controllers/trips_controller.dart';
 import '../../models/trip.dart';
 import '../../utils/app_theme.dart';
-import '../riders_view/views/driver_search_delegate.dart';
+import '../trip_view/components/calender_pop_up.dart';
 
 class TripsView extends GetResponsiveView<TripsController> {
   TripsView({required this.username, Key? key}) : super(key: key) {
@@ -15,6 +15,9 @@ class TripsView extends GetResponsiveView<TripsController> {
   }
 
   final String username;
+  DateTime _startDate = DateTime.now();
+  DateTime? _endDate;
+  bool filterByStart = true;
 
   @override
   Widget build(BuildContext context) {
@@ -38,10 +41,33 @@ class TripsView extends GetResponsiveView<TripsController> {
             },
             icon: const Icon(Icons.search),
           ),
+          IconButton(
+            onPressed: () {
+              Get.dialog(
+                CalendarPopupView(
+                  barrierDismissible: true,
+                  initialEndDate: _endDate,
+                  initialStartDate: _startDate,
+                  filterByStart: filterByStart,
+                  onApplyClick: (DateTime startDate, DateTime? endDate, bool start) {
+                    _startDate = startDate;
+                    _endDate = endDate;
+                    filterByStart = start;
+                    Get.back();
+                    controller.filterTrips(startDate: startDate, endDate: endDate, byTripStartDate: start);
+                  },
+                  onCancelClick: () {},
+                ),
+                transitionDuration: const Duration(seconds: 1),
+              );
+            },
+            icon: const Icon(Icons.filter_list),
+          ),
         ],
       ),
       body: Obx(() {
-        if (controller.trips.isEmpty) {
+        RxList<Trip> trips = controller.trips;
+        if (trips.isEmpty) {
           return Container();
         }
         return CustomScrollView(
@@ -54,13 +80,19 @@ class TripsView extends GetResponsiveView<TripsController> {
                     child: Visibility(
                       visible: trip.status == 'completed',
                       replacement: ListTile(
-                        onTap: () {},
+                        onTap: () {
+
+                        },
                         leading: const SizedBox(
                           height: 45,
                           width: 45,
                           child: Card(
-                            shape: CircleBorder(),
-                            color: AppTheme.primaryDarkColor,
+                            shape: CircleBorder(
+                              side: BorderSide(color: AppTheme.colorOrange, width: 2),
+                            ),
+                            color: AppTheme.primaryColor,
+                            shadowColor: AppTheme.primaryLightColor,
+                            elevation: 3,
                             child: Icon(
                               Icons.pending,
                               color: AppTheme.colorOrange,
@@ -81,22 +113,23 @@ class TripsView extends GetResponsiveView<TripsController> {
                           ),
                         ),
                         subtitle: Text(
-                          'Ended ${timeago.format(trip.createdAt, allowFromNow: true)}',
+                          'Started ${timeago.format(trip.createdAt, allowFromNow: true)}',
                           style: GoogleFonts.lato(
                             textStyle: TextStyle(color: Colors.yellow[900]),
                           ),
                         ),
                         trailing: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                              primary: AppTheme.secondaryColor),
+                              primary: AppTheme.colorOrange,
+                          ),
                           onPressed: () {},
                           child: Text(
-                            'View',
+                            'View Progress',
                             maxLines: 1,
                             textScaleFactor: 0.8,
                             style: GoogleFonts.lato(
-                              textStyle: TextStyle(
-                                color: Colors.yellow[900],
+                              textStyle: const TextStyle(
+                                color: AppTheme.primaryColor,
                                 letterSpacing: 2,
                               ),
                             ),
@@ -104,12 +137,16 @@ class TripsView extends GetResponsiveView<TripsController> {
                         ),
                       ),
                       child: ListTile(
-                        onTap: () {},
+                        onTap: () {
+                          controller.prepareCompletedTripForViewing(trip: trip);
+                        },
                         leading: const SizedBox(
                           height: 45,
                           width: 45,
                           child: Card(
-                            shape: CircleBorder(),
+                            shape: CircleBorder(
+                              side: BorderSide(color: AppTheme.colorGreen, width: 2),
+                            ),
                             color: AppTheme.primaryDarkColor,
                             child: Icon(
                               Icons.done_all,
@@ -138,15 +175,18 @@ class TripsView extends GetResponsiveView<TripsController> {
                         ),
                         trailing: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                              primary: AppTheme.secondaryColor),
-                          onPressed: () {},
+                              primary: AppTheme.colorGreen,
+                          ),
+                          onPressed: () {
+                            controller.prepareCompletedTripForViewing(trip: trip);
+                          },
                           child: Text(
                             'View',
                             maxLines: 1,
                             textScaleFactor: 0.8,
                             style: GoogleFonts.lato(
-                              textStyle: TextStyle(
-                                color: Colors.yellow[900],
+                              textStyle: const TextStyle(
+                                color: AppTheme.primaryDarkColor,
                                 letterSpacing: 2,
                               ),
                             ),
@@ -162,6 +202,13 @@ class TripsView extends GetResponsiveView<TripsController> {
           ],
         );
       }),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: AppTheme.nearlyWhite,
+        tooltip: 'Download Report',
+        child: const Icon(Icons.download),
+        onPressed: () {},
+      ),
     );
   }
 }

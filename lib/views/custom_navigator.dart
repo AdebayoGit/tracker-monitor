@@ -27,7 +27,7 @@ class CustomNavigatorState extends State<CustomNavigator> {
   void initState() {
     drawerIndex = DrawerIndex.home;
     home = false;
-    screenView = const Home();
+    screenView = Home();
     color = AppTheme.nearlyBlack;
     super.initState();
   }
@@ -56,7 +56,7 @@ class CustomNavigatorState extends State<CustomNavigator> {
       drawerIndex = drawerIndexdata;
       if (drawerIndex == DrawerIndex.home) {
         setState(() {
-          screenView = const Home();
+          screenView = Home();
           color = AppTheme.nearlyBlack;
         });
       } else if (drawerIndex == DrawerIndex.riders){
@@ -76,7 +76,7 @@ class CustomNavigatorState extends State<CustomNavigator> {
         });
       } else if (drawerIndex == DrawerIndex.help){
         setState(() {
-          screenView = const Home();
+          screenView = Home();
           color = AppTheme.nearlyBlack;
         });
       } else {

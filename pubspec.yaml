@@ -42,6 +42,8 @@ dependencies:
   path_provider: ^2.0.11
   shimmer: ^2.0.0
   timeago: ^3.2.2
+  screenshot: ^1.2.3
+  pdf: ^3.8.2
 
   firebase_core: ^1.19.1
   firebase_auth: ^3.4.1
@@ -53,6 +55,7 @@ dependencies:
   get: ^4.6.5
   google_maps_flutter: ^2.1.6
   intl: ^0.17.0
+  flutter_polyline_points: ^1.0.0
 
 dev_dependencies:
   flutter_test:

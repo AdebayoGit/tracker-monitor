@@ -1,30 +1,43 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:viewer/controllers/auth_controller.dart';
 import 'package:viewer/helpers/response.dart';
+import 'package:viewer/models/location.dart';
 import 'package:viewer/models/response_status.dart';
 import 'package:viewer/services/drivers_services.dart';
 
 import '../components/capture_image_sheet.dart';
 import '../models/driver.dart';
-import '../models/trip.dart';
 import '../utils/app_theme.dart';
-import '../views/records_view/trips_view.dart';
 
 class DriversController extends GetxController {
   late final DriverServices _services;
 
   final RxList<Driver> _driversList = <Driver>[].obs;
 
+  final List<Map<String, Location>> driversLastLocations = <Map<String, Location>>[];
+
+  final RxSet<Marker> markers = <Marker>{}.obs;
+
   RxInt driversCount = 0.obs;
+
+  late GoogleMapController mapController;
 
   @override
   void onInit() {
     _services = DriverServices();
     _driversList.bindStream(_services.drivers);
     super.onInit();
+  }
+
+  @override
+  void onReady() async {
+    await _getDriversLastLocations();
+    super.onReady();
   }
 
   List<Driver> get drivers => _driversList;
@@ -77,5 +90,60 @@ class DriversController extends GetxController {
       backgroundColor: AppTheme.nearlyBlack,
     );
     return image;
+  }
+
+  Future<void> _getDriversLastLocations() async {
+    //assert();
+    if(_driversList.isNotEmpty){
+      for (Driver driver in _driversList) {
+        if (driver.lastTrip != '') {
+          Status res = await _services.getLastKnownLocation(driver);
+          if (res is Success) {
+            Location locationFromResponse = res.response as Location;
+            Map<String, Location> location = <String, Location>{driver.username: locationFromResponse};
+            markers.add(
+                Marker(
+                  markerId: MarkerId(driver.username),
+                  position: locationFromResponse.location,
+                  rotation: locationFromResponse.direction,
+                  infoWindow: InfoWindow(title: driver.username),
+                ));
+            driversLastLocations.add(location);
+          } else {
+            ResponseHelpers.showSnackbar(
+                "Unable to retrieve Driver ${driver.username}'s Location, ${res.response.toString()}");
+          }
+        }
+      }
+    } else {
+      Future.delayed(const Duration(seconds: 3), () => _getDriversLastLocations());
+    }
+  }
+
+  //Todo: refactor this controller and Trips controller
+
+  Future<void> moveMap(String username) async {
+    late LatLng location;
+    for (Map<String, Location> locationObject in driversLastLocations.toList()) {
+      for (var entry in locationObject.entries) {
+        if(entry.key == username){
+          location = entry.value.location;
+          CameraPosition position = CameraPosition(
+            target: location,
+            zoom: 14.4746,
+          );
+
+          mapController.animateCamera(CameraUpdate.newCameraPosition(position));
+
+          return;
+        }
+      }
+    }
+  }
+
+  BitmapDescriptor _createMarker(String imagePath) {
+    ImageConfiguration imageConfiguration =
+    createLocalImageConfiguration(Get.context!, size: const Size(2, 2));
+    return BitmapDescriptor.defaultMarker;
   }
 }
