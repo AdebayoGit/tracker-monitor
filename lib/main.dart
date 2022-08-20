@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:viewer/views/splash_view.dart';
 
 import 'controllers/auth_controller.dart';
+import 'controllers/trips_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,7 @@ class Passenger extends StatelessWidget {
         home: const SplashView(),
         onInit: () async {
           Get.put(AuthController());
+          Get.put(TripsController());
         }
     );
   }

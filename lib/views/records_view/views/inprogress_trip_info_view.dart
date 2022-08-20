@@ -5,41 +5,33 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:viewer/controllers/trips_controller.dart';
 
-import '../../../models/location.dart';
-import '../../../models/trip.dart';
 import '../../../utils/app_theme.dart';
-import '../components/trip_text_info_widget.dart';
 
-class TripInfoReport extends GetResponsiveView<TripsController> {
-  TripInfoReport({
-    Key? key,
-    required this.locations,
-    required this.trip,
-    required this.route,
-    required this.markers,
-    required this.bounds,
-  }) : super(key: key) {
-    Get.lazyPut(() => TripsController());
-  }
-
-  final List<Location> locations;
-  final Set<Marker> markers;
-  final Trip trip;
-  final Polyline route;
-  final LatLngBounds bounds;
+class TripProgressReport extends GetView<TripsController> {
+  TripProgressReport({Key? key}) : super(key: key);
 
   final Completer<GoogleMapController> _controller = Completer();
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Column(
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: AppTheme.nearlyWhite,
+        centerTitle: true,
+        title: const Text(
+          'Trip Progress',
+          style: TextStyle(letterSpacing: 5, fontFamily: 'WorkSans'),
+        ),
+        titleSpacing: 2,
+      ),
+      body: Column(
         children: [
           Expanded(
+            flex: 2,
             child: GoogleMap(
                 mapType: MapType.normal,
                 compassEnabled: false,
@@ -56,8 +48,9 @@ class TripInfoReport extends GetResponsiveView<TripsController> {
                         () => EagerGestureRecognizer(),
                   ),
                 },
-                polylines: {route},
-                markers: markers,
+                polylines: controller.route,
+                markers: controller.markers,
+                padding: const EdgeInsets.all(50),
                 initialCameraPosition: const CameraPosition(
                   target: LatLng(37.42796133580664, -122.085749655962),
                   zoom: 14.4746,
@@ -65,35 +58,82 @@ class TripInfoReport extends GetResponsiveView<TripsController> {
                 onMapCreated: (GoogleMapController $controller) {
                   _controller.complete($controller);
                   controller.mapController = $controller;
-                  $controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50)
-                  );
+                  //controller.moveMap(controller.markers.last.position);
                 }),
           ),
           Expanded(
-            child: ListView(
+            flex: 1,
+            child: Column(
               children: [
-                Text(
-                  'TRIP INFO',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.lato(
-                    textStyle:
-                    Theme.of(context).textTheme.headline3!.copyWith(
-                      fontWeight: FontWeight.w900,
-                      foreground: Paint()
-                        ..style = PaintingStyle.stroke
-                        ..strokeWidth = 1
-                        ..color = Colors.grey[600]!,
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'TRIP INFO',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.lato(
+                      textStyle:
+                      Theme.of(Get.context!).textTheme.headline4!.copyWith(
+                        fontWeight: FontWeight.w900,
+                        foreground: Paint()
+                          ..style = PaintingStyle.stroke
+                          ..strokeWidth = 1
+                          ..color = Colors.grey[600]!,
+                      ),
                     ),
                   ),
                 ),
-                Column(
-                  children: controller.locationTiles,
+                Expanded(
+                  flex: 5,
+                  child: Obx(() => ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: controller.locationTiles.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return controller.locationTiles[index];
+                    },
+                  )),
                 ),
               ],
             ),
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: AppTheme.nearlyWhite,
+        tooltip: 'How-tos',
+        child: const Icon(Icons.question_mark),
+        onPressed: () {},
+      ),
     );
   }
 }
+
+/*DraggableScrollableSheet(
+              initialChildSize: 0.2,
+              minChildSize: 0.2,
+              maxChildSize: 0.9,
+              builder: (BuildContext context, ScrollController $controller) {
+                return Container(
+                  color: Colors.white70,
+                  child: ListView(
+                      controller: $controller,
+                      children: [
+                        Text(
+                          'TRIP INFO',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.lato(
+                            textStyle:
+                            Theme.of(context).textTheme.headline3!.copyWith(
+                              fontWeight: FontWeight.w900,
+                              foreground: Paint()
+                                ..style = PaintingStyle.stroke
+                                ..strokeWidth = 1
+                                ..color = Colors.grey[600]!,
+                            ),
+                          ),
+                        ),
+                        controller.locationTiles,
+                      ],
+                    ),
+                );
+              }),*/

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 
@@ -16,18 +15,22 @@ import '../helpers/response.dart';
 import '../models/driver.dart';
 import '../models/location.dart';
 import '../models/trip.dart';
-import '../views/records_view/trips_view.dart';
 import '../views/records_view/views/completed_trip_info_view.dart';
 import '../views/records_view/views/inprogress_trip_info_view.dart';
+import '../views/records_view/views/static_trip_view.dart';
 import '../views/trip_view/components/location_tile.dart';
 
-class TripsController extends GetxController{
+class TripsController extends GetxService{
 
   late final TripServices _services;
 
-  late final RxList<Trip> _tripsRepo;
+  final RxList<Trip> _tripsRepo = <Trip>[].obs;
 
-  RxList<Trip> _tripsList = <Trip>[].obs;
+  late RxSet<Polyline> route = <Polyline>{}.obs;
+
+  late RxSet<Marker> markers = <Marker>{}.obs;
+
+  final RxList<Trip> _tripsList = <Trip>[].obs;
 
   late final RxList<LatLng> progressLocations;
 
@@ -35,29 +38,30 @@ class TripsController extends GetxController{
 
   late GoogleMapController mapController;
 
+  late StreamSubscription<List<Location>> locationStream;
+
+  late StreamSubscription<Trip> tripStream;
+
   @override
   void onInit(){
     _services = TripServices();
 
-    _tripsRepo = <Trip>[].obs;
+    _tripsRepo.bindStream(_services.getTrips());
 
     super.onInit();
   }
 
   @override
-  void dispose(){
+  void onClose() {
     _tripsRepo.clear();
-    _tripsRepo.close();
-    super.dispose();
+    super.onClose();
   }
 
-  RxList<Trip> get trips => _tripsList;
+  RxList<Trip> get tripsList => _tripsList;
 
-  void getDriversTrips({required Driver driver}) {
-    _tripsRepo.bindStream(_services.getDriversTrips(driver.trips));
-    _tripsList = _tripsRepo.toList().obs;
-    Get.to(() => TripsView(username: driver.username), transition: Transition.fadeIn, duration: const Duration(seconds: 1));
-    return;
+  void getDriversTrips({required String driver}) {
+    assert(_tripsRepo.isNotEmpty);
+    _tripsList.value = _tripsRepo.where((i) => i.id.toLowerCase().contains(driver.toLowerCase())).toList();
   }
 
   List<Trip> searchForTrip({required String query}) {
@@ -70,6 +74,7 @@ class TripsController extends GetxController{
 
   void filterTrips({required DateTime startDate, DateTime? endDate, bool byTripStartDate = true}) {
     ResponseHelpers.showProgressDialog("Filtering Trips...");
+    printInfo(info: startDate.toString());
     if(byTripStartDate == true){
       _tripsList.value = _tripsRepo.toList().where((i) => DateHelpers.isBetween(startDate: startDate, endDate: endDate, date: DateHelpers.formatToDateOnly(i.createdAt))).toList();
     } else {
@@ -78,39 +83,98 @@ class TripsController extends GetxController{
         return DateHelpers.isBetween(startDate: startDate, endDate: endDate, date: date);
       }).toList();
     }
+
+    printInfo(info: _tripsList.length.toString());
+
     Get.back();
   }
 
-  Future<void> prepareCompletedTripForViewing({required Trip trip, bool? expandTiles}) async {
+  Future<void> prepareCompletedTripForViewing({required Trip trip}) async{
+
     ResponseHelpers.showProgressDialog("Please wait...");
 
-    Set<Marker> tripMarkers = await _createTripMarkers(trip: trip);
+    Set<Marker> tripMarkers = await _createStaticTripMarkers(trip: trip);
 
-    _services.getTripProgress(trip.locations).listen((List<Location> locations) {
+    List<Map<String, dynamic>> highlights = _createMapHighlights(trip);
+
+    List<LatLng> latLngs = <LatLng>[];
+
+    List<Location> locations = await _services.getCompletedTripLocations(trip.locations);
+
+    for(Location location in locations) {
+      latLngs.add(location.location);
+    }
+    latLngs.removeLast();
+
+    LatLngBounds bounds = _computeBounds(latLngs);
+
+    Polyline route = Polyline(
+      polylineId: const PolylineId("Route"),
+      geodesic: true,
+      points: latLngs.toSet().toList(),
+      width: 5,
+      jointType: JointType.bevel,
+      color: Colors.green[900]!,
+    );
+
+    Map<String, dynamic> arguments = {
+      'route': <Polyline>{route},
+      'markers': tripMarkers,
+      'bounds': bounds,
+      'initLocation': CameraPosition(
+        target: latLngs.first,
+        zoom: 14.4746,
+      ),
+      'highlights': highlights,
+    };
+
+    Get.back();
+
+    Get.to(() =>
+        StaticTripReport(), arguments: arguments,
+    );
+  }
+
+  Future<void> prepareUnCompletedTripForViewing({required Trip trip}) async {
+    ResponseHelpers.showProgressDialog("Please wait...");
+
+    tripStream = _services.trip(trip.id).listen((event) async {
+      markers.clear();
+      markers = await _createTripMarkers(trip: event);
+    });
+
+    locationStream = _services.getTripProgress(trip.locations).listen((List<Location> locations) async {
       List<LatLng> latLngs = <LatLng>[];
 
       for(Location location in locations) {
         latLngs.add(location.location);
       }
-      latLngs.removeLast();
 
-      LatLngBounds bounds = _computeBounds(latLngs);
+      route = {
+        Polyline(
+          polylineId: const PolylineId("Route"),
+          geodesic: true,
+          points: latLngs.toSet().toList(),
+          width: 5,
+          jointType: JointType.bevel,
+          color: Colors.green[900]!,
+        )
+      }.obs;
 
-      Polyline route = Polyline(
-        polylineId: const PolylineId("Route"),
-        geodesic: true,
-        points: latLngs.toSet().toList(),
-        width: 5,
-        jointType: JointType.bevel,
-        color: Colors.green[900]!,
-      );
-
-      Get.back();
-
-      Get.to(() =>
-          CompletedTripInfoView(trip: trip, locations: locations, route: route, markers: tripMarkers, bounds: bounds,),
-      );
     });
+
+    Get.back();
+    /*Get.to(() =>
+        TripProgressReport(),
+        arguments: {
+          'trip': trip,
+          'initialLocation': markers.last.position,
+        }
+    );*/
+  }
+
+  void setMapToDriversLocation(){
+    moveMap(markers.first.position);
   }
 
   Future<Widget> _prepareTripForReport({required Trip trip, bool? expandTiles}) async {
@@ -135,11 +199,11 @@ class TripsController extends GetxController{
       color: Colors.green[900]!,
     );
 
-    return TripInfoReport(trip: trip, locations: locations, route: route, markers: tripMarkers, bounds: bounds,);
+    return const SizedBox();
 
   }
 
-  Future<Set<Marker>> _createTripMarkers({required Trip trip, bool expandTiles = false}) async {
+  Future<RxSet<Marker>> _createTripMarkers({required Trip trip, bool expandTiles = false}) async {
 
     locationTiles.clear();
 
@@ -156,7 +220,7 @@ class TripsController extends GetxController{
       position: LatLng(trip.startPoint['location'].latitude, trip.startPoint['location'].longitude,),
     ));
 
-    locationTiles.add(LocationTile(initiallyExpanded:expandTiles, press: () => _moveMap(LatLng(trip.startPoint['location'].latitude, trip.startPoint['location'].longitude)), title: "Start Point", time: 'Trip Started ${timeago.format(trip.startPoint['time'].toDate(), allowFromNow: true)}', remark: trip.initialRemarks));
+    locationTiles.add(LocationTile(initiallyExpanded:expandTiles, press: () => moveMap(LatLng(trip.startPoint['location'].latitude, trip.startPoint['location'].longitude)), title: "Start Point", time: 'Trip Started ${timeago.format(trip.startPoint['time'].toDate(), allowFromNow: true)}', remark: trip.initialRemarks));
 
     if(trip.stopPoint != null) {
       BitmapDescriptor endPin = await _createMarker('assets/images/stop_trip_marker.png');
@@ -168,7 +232,7 @@ class TripsController extends GetxController{
         position: LatLng(trip.stopPoint!['location'].latitude, trip.stopPoint!['location'].longitude,),
       ));
 
-      locationTiles.add(LocationTile(initiallyExpanded:expandTiles, press: () => _moveMap(LatLng(trip.stopPoint!['location'].latitude, trip.stopPoint!['location'].longitude)), title: "Stop Point", time: 'Trip Ended ${timeago.format(trip.stopPoint!['time'].toDate(), allowFromNow: true)}', remark: 'No remarks provided'));
+      locationTiles.add(LocationTile(initiallyExpanded:expandTiles, press: () => moveMap(LatLng(trip.stopPoint!['location'].latitude, trip.stopPoint!['location'].longitude)), title: "Stop Point", time: 'Trip Ended ${timeago.format(trip.stopPoint!['time'].toDate(), allowFromNow: true)}', remark: 'No remarks provided'));
     }
 
     int i = 1;
@@ -180,11 +244,86 @@ class TripsController extends GetxController{
         infoWindow: InfoWindow(title: 'Pause $i', snippet: pause['location']['time'].toDate().toString()),
         position: LatLng(pause['location']['location'].latitude, pause['location']['location'].longitude,),
       ));
-      locationTiles.add(LocationTile(initiallyExpanded:expandTiles, press: () => _moveMap(LatLng(pause['location']['location'].latitude, pause['location']['location'].longitude)), title: 'Pause $i', time: 'Paused ${timeago.format(pause['location']['time'].toDate(), allowFromNow: true)}', remark: pause['remark'] ));
+      locationTiles.add(LocationTile(initiallyExpanded:expandTiles, press: () => moveMap(LatLng(pause['location']['location'].latitude, pause['location']['location'].longitude)), title: 'Pause $i', time: 'Paused ${timeago.format(pause['location']['time'].toDate(), allowFromNow: true)}', remark: pause['remark'] ));
       i++;
     }
 
+    return markers.obs;
+  }
+
+  Future<Set<Marker>> _createStaticTripMarkers({required Trip trip}) async {
+
+    Set<Marker> markers = <Marker>{};
+
+    BitmapDescriptor startPin = await _createMarker('assets/images/start_trip_marker.png');
+
+    BitmapDescriptor pausePin = await _createMarker('assets/images/end_trip_marker.png');
+
+    BitmapDescriptor endPin = await _createMarker('assets/images/stop_trip_marker.png');
+
+    markers.add(Marker(
+      markerId: const MarkerId('Start'),
+      icon: startPin,
+      infoWindow: InfoWindow(title: 'Trip Start', snippet: trip.startPoint['time'].toDate().toString()),
+      position: LatLng(trip.startPoint['location'].latitude, trip.startPoint['location'].longitude,),
+    ));
+
+    markers.add(Marker(
+      markerId: const MarkerId('End'),
+      icon: endPin,
+      infoWindow: InfoWindow(title: 'Trip End', snippet: trip.stopPoint!['time'].toDate().toString()),
+      position: LatLng(trip.stopPoint!['location'].latitude, trip.stopPoint!['location'].longitude,),
+    ));
+
+    int i = 1;
+
+    for(var pause in trip.pauses) {
+      markers.add(Marker(
+        markerId: MarkerId('Pause $i'),
+        icon: pausePin,
+        infoWindow: InfoWindow(title: 'Pause $i', snippet: pause['location']['time'].toDate().toString()),
+        position: LatLng(pause['location']['location'].latitude, pause['location']['location'].longitude,),
+      ));
+      i++;
+    }
     return markers;
+  }
+
+  List<Map<String, dynamic>> _createMapHighlights (Trip trip) {
+
+    List<Map<String, dynamic>> highlights = [];
+
+    highlights.add({
+    'initiallyExpanded': true,
+    'latLng': LatLng(trip.startPoint['location'].latitude, trip.startPoint['location'].longitude),
+    'title': "Start Point",
+    'time': 'Trip Started ${timeago.format(trip.startPoint['time'].toDate(), allowFromNow: true)}',
+    'remark': trip.initialRemarks,
+    });
+
+    if (trip.stopPoint != null) {
+      highlights.add({
+        'initiallyExpanded': false,
+        'latLng': LatLng(trip.stopPoint!['location'].latitude, trip.stopPoint!['location'].longitude),
+        'title': "Stop Point",
+        'time': 'Trip Ended ${timeago.format(trip.stopPoint!['time'].toDate(), allowFromNow: true)}',
+        'remark': 'No remarks provided',
+      });
+    }
+
+    int i = 1;
+
+    for(var pause in trip.pauses) {
+      highlights.add({
+        'initiallyExpanded': false,
+        'latLng': LatLng(pause['location']['location'].latitude, pause['location']['location'].longitude),
+        'title': 'Pause $i',
+        'time': 'Paused ${timeago.format(pause['location']['time'].toDate(), allowFromNow: true)}',
+        'remark': pause['remark'],
+      });
+      i++;
+    }
+    return highlights;
   }
 
   Future<BitmapDescriptor> _createMarker(String imagePath) {
@@ -196,7 +335,7 @@ class TripsController extends GetxController{
     ).then((BitmapDescriptor icon) => icon);
   }
 
-  Future<void> _moveMap(LatLng location) async {
+  Future<void> moveMap(LatLng location) async {
     CameraPosition position = CameraPosition(
       target: location,
       zoom: 14.4746,
@@ -227,7 +366,7 @@ class TripsController extends GetxController{
 
     final pw.Document pdf = pw.Document();
 
-    for (Trip trip in _tripsList){
+    for (Trip trip in tripsList){
       Widget report = await _prepareTripForReport(trip: trip, expandTiles: true);
       /*pdf.addPage(
           pw.Page(

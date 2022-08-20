@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:viewer/controllers/trips_controller.dart';
+import 'package:viewer/views/records_view/trips_view.dart';
 import 'package:viewer/views/records_view/views/records_search_delegate.dart';
 
 import '../../controllers/drivers_controller.dart';
@@ -52,7 +53,10 @@ class RecordsHome extends GetResponsiveView<DriversController> {
                   return Card(
                     child: ListTile(
                       onTap: () {
-                        tripsController.getDriversTrips(driver: driver);
+                        //tripsController.getDriversTrips(driver: driver);
+                        Get.to(() => TripViewTest(), transition: Transition.fadeIn, duration: const Duration(seconds: 1), arguments: {
+                          "driver": driver,
+                        });
                       },
                       leading: CachedNetworkImage(
                         height: 60,
@@ -123,7 +127,7 @@ class RecordsHome extends GetResponsiveView<DriversController> {
                         itemBuilder: (context) => [
                           PopupMenuItem(
                             onTap: () {
-                              Future.delayed(const Duration(microseconds: 200), () => tripsController.getDriversTrips(driver: driver));
+                              Future.delayed(const Duration(microseconds: 200), () => tripsController.getDriversTrips(driver: driver.username));
                             },
                             value: 1,
                             child: Text("View Trips", style: GoogleFonts.lato()),

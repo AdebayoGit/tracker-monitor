@@ -42,8 +42,7 @@ class DriversController extends GetxController {
 
   List<Driver> get drivers => _driversList;
 
-  Future<void> create({required String username, required String password,
-        File? image}) async {
+  Future<void> create({required String username, required String password, File? image}) async {
     ResponseHelpers.showProgressDialog("Please wait...");
     AuthController auth = Get.find<AuthController>();
     Status res = await _services.create(username.toLowerCase(), password, auth.user.uid, image);
@@ -74,7 +73,7 @@ class DriversController extends GetxController {
     if(query.isEmpty){
       return _driversList;
     } else {
-      return _driversList.where((i) => i.username.contains(query)).toList();
+      return _driversList.where((i) => i.username.toLowerCase().contains(query.toLowerCase())).toList();
     }
   }
 
@@ -93,22 +92,24 @@ class DriversController extends GetxController {
   }
 
   Future<void> _getDriversLastLocations() async {
-    //assert();
     if(_driversList.isNotEmpty){
       for (Driver driver in _driversList) {
         if (driver.lastTrip != '') {
-          Status res = await _services.getLastKnownLocation(driver);
+          Status res = await _services.getLastKnownLocation(driver.lastTrip);
           if (res is Success) {
-            Location locationFromResponse = res.response as Location;
-            Map<String, Location> location = <String, Location>{driver.username: locationFromResponse};
-            markers.add(
-                Marker(
-                  markerId: MarkerId(driver.username),
-                  position: locationFromResponse.location,
-                  rotation: locationFromResponse.direction,
-                  infoWindow: InfoWindow(title: driver.username),
-                ));
-            driversLastLocations.add(location);
+            if(res.response == ''){
+              ResponseHelpers.showSnackbar("${driver.username}'s last Location is unknown");
+            } else {
+              Location locationFromResponse = res.response as Location;
+              Map<String, Location> location = <String, Location>{driver.username: locationFromResponse};
+              markers.add(Marker(
+                markerId: MarkerId(driver.username),
+                position: locationFromResponse.location,
+                rotation: locationFromResponse.direction,
+                infoWindow: InfoWindow(title: driver.username),
+              ));
+              driversLastLocations.add(location);
+            }
           } else {
             ResponseHelpers.showSnackbar(
                 "Unable to retrieve Driver ${driver.username}'s Location, ${res.response.toString()}");

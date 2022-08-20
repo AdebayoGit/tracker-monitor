@@ -53,7 +53,7 @@ class RecordsSearchView extends SearchDelegate {
               return Card(
                 child: ListTile(
                   onTap: () {
-                    tripsController.getDriversTrips(driver: driver);
+                    tripsController.getDriversTrips(driver: driver.username);
                   },
                   leading: Image.network(
                     driver.photoUrl == ''
@@ -79,7 +79,7 @@ class RecordsSearchView extends SearchDelegate {
                     itemBuilder: (context) => [
                       PopupMenuItem(
                         onTap: () {
-                          tripsController.getDriversTrips(driver: driver);
+                          tripsController.getDriversTrips(driver: driver.username);
                         },
                         value: 1,
                         child: Text("View Records", style: GoogleFonts.lato()),
@@ -117,7 +117,7 @@ class RecordsSearchView extends SearchDelegate {
               return Card(
                 child: ListTile(
                   onTap: () {
-                    tripsController.getDriversTrips(driver: driver);
+                    tripsController.getDriversTrips(driver: driver.username);
                   },
                   leading: Image.network(
                     driver.photoUrl == ''
@@ -143,7 +143,7 @@ class RecordsSearchView extends SearchDelegate {
                     itemBuilder: (context) => [
                       PopupMenuItem(
                         onTap: () {
-                          tripsController.getDriversTrips(driver: driver);
+                          tripsController.getDriversTrips(driver: driver.username);
                         },
                         value: 1,
                         child: Text("View Records", style: GoogleFonts.lato()),

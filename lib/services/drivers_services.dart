@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:viewer/services/image_services.dart';
+import 'package:viewer/services/trips_services.dart';
 
 import '../models/driver.dart';
 import '../models/location.dart';
 import '../models/response_status.dart';
-import '../models/trip.dart';
 
 class DriverServices{
 
@@ -56,13 +56,11 @@ class DriverServices{
     }
   }
   
-  Future<Status> getLastKnownLocation(Driver driver) async {
+  Future<Status> getLastKnownLocation(String lastTripId) async {
     try {
-      QuerySnapshot snapshot = await driver.trips.doc(driver.lastTrip).collection('locations').orderBy('time').limitToLast(1).get();
-      Location location = snapshot.docs.map((doc) {
-        return Location.fromSnap(doc);
-      }).toList().first;
-      return Success(response: location);
+      TripServices service = TripServices();
+      Location? location = await service.getLastLocation(lastTripId);
+      return Success(response: location!);
     } on Exception catch (e) {
       return Failure(code: e.toString(), response: "Unknown Error");
     }
