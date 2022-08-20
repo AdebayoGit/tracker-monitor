@@ -42,4 +42,8 @@ class TripServices{
       return null;
     }
   }
+
+  tripDuration(){
+
+  }
 }

@@ -12,11 +12,10 @@ import 'package:viewer/helpers/date.dart';
 import 'package:viewer/services/trips_services.dart';
 
 import '../helpers/response.dart';
-import '../models/driver.dart';
+
 import '../models/location.dart';
 import '../models/trip.dart';
-import '../views/records_view/views/completed_trip_info_view.dart';
-import '../views/records_view/views/inprogress_trip_info_view.dart';
+
 import '../views/records_view/views/static_trip_view.dart';
 import '../views/trip_view/components/location_tile.dart';
 
@@ -31,8 +30,6 @@ class TripsController extends GetxService{
   late RxSet<Marker> markers = <Marker>{}.obs;
 
   final RxList<Trip> _tripsList = <Trip>[].obs;
-
-  late final RxList<LatLng> progressLocations;
 
   late final RxList<LocationTile> locationTiles = <LocationTile>[].obs;
 
@@ -89,7 +86,7 @@ class TripsController extends GetxService{
     Get.back();
   }
 
-  Future<void> prepareCompletedTripForViewing({required Trip trip}) async{
+  Future<void> prepareCompletedTripForViewing({required Trip trip}) async {
 
     ResponseHelpers.showProgressDialog("Please wait...");
 
@@ -104,7 +101,6 @@ class TripsController extends GetxService{
     for(Location location in locations) {
       latLngs.add(location.location);
     }
-    latLngs.removeLast();
 
     LatLngBounds bounds = _computeBounds(latLngs);
 
@@ -268,13 +264,6 @@ class TripsController extends GetxService{
       position: LatLng(trip.startPoint['location'].latitude, trip.startPoint['location'].longitude,),
     ));
 
-    markers.add(Marker(
-      markerId: const MarkerId('End'),
-      icon: endPin,
-      infoWindow: InfoWindow(title: 'Trip End', snippet: trip.stopPoint!['time'].toDate().toString()),
-      position: LatLng(trip.stopPoint!['location'].latitude, trip.stopPoint!['location'].longitude,),
-    ));
-
     int i = 1;
 
     for(var pause in trip.pauses) {
@@ -286,6 +275,14 @@ class TripsController extends GetxService{
       ));
       i++;
     }
+
+    markers.add(Marker(
+      markerId: const MarkerId('End'),
+      icon: endPin,
+      infoWindow: InfoWindow(title: 'Trip End', snippet: trip.stopPoint!['time'].toDate().toString()),
+      position: LatLng(trip.stopPoint!['location'].latitude, trip.stopPoint!['location'].longitude,),
+    ));
+
     return markers;
   }
 
