@@ -332,6 +332,9 @@ class TripsController extends GetxService{
     ).then((BitmapDescriptor icon) => icon);
   }
 
+
+  //git routine
+
   Future<void> moveMap(LatLng location) async {
     CameraPosition position = CameraPosition(
       target: location,
