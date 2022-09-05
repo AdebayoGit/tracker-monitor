@@ -10,6 +10,7 @@ import '../../models/driver.dart';
 import '../../models/trip.dart';
 import '../../utils/app_theme.dart';
 import '../trip_view/components/calender_pop_up.dart';
+import 'components/name_change_widget.dart';
 
 class TripViewTest extends GetView<TripsController> {
   TripViewTest({Key? key}) : super(key: key);
@@ -178,7 +179,7 @@ class TripViewTest extends GetView<TripsController> {
                           ),
                         ),
                         title: Text(
-                          trip.id.toUpperCase(),
+                          trip.name.toUpperCase(),
                           maxLines: 1,
                           textScaleFactor: 0.7,
                           overflow: TextOverflow.ellipsis,
@@ -199,24 +200,23 @@ class TripViewTest extends GetView<TripsController> {
                             TextStyle(color: Colors.yellow[900]),
                           ),
                         ),
-                        trailing: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            primary: AppTheme.colorGreen,
-                          ),
-                          onPressed: () {
-                            controller.prepareCompletedTripForViewing(trip: trip);
-                          },
-                          child: Text(
-                            'View',
-                            maxLines: 1,
-                            textScaleFactor: 0.8,
-                            style: GoogleFonts.lato(
-                              textStyle: const TextStyle(
-                                color: AppTheme.primaryDarkColor,
-                                letterSpacing: 2,
-                              ),
+                        trailing: PopupMenuButton(
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              onTap: () {
+                                controller.prepareCompletedTripForViewing(trip: trip);
+                              },
+                              value: 1,
+                              child: Text("View Trips", style: GoogleFonts.lato()),
                             ),
-                          ),
+                            PopupMenuItem(
+                              onTap: () {
+                                Future.delayed(const Duration(microseconds: 200), () => Get.dialog(NameChange(tripId: trip.id)));
+                              },
+                              value: 2,
+                              child: Text("Rename Trip", style: GoogleFonts.lato()),
+                            ),
+                          ],
                         ),
                       ),
                     ),

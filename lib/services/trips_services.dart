@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/location.dart';
+import '../models/response_status.dart';
 import '../models/trip.dart';
 
 class TripServices{
@@ -43,7 +44,11 @@ class TripServices{
     }
   }
 
-  tripDuration(){
-
+  Future<Status> renameTrip(String name, String tripId) async {
+    try {
+      return _tripsRef.doc(tripId).update({'name': name}).then((value) => Success(response: "Trip name changed successfully"));
+    } on Exception catch (e) {
+      return Failure(code: '503', response: e.toString());
+    }
   }
 }

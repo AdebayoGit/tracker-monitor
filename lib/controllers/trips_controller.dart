@@ -14,6 +14,7 @@ import 'package:viewer/services/trips_services.dart';
 import '../helpers/response.dart';
 
 import '../models/location.dart';
+import '../models/response_status.dart';
 import '../models/trip.dart';
 
 import '../views/records_view/views/static_trip_view.dart';
@@ -57,8 +58,7 @@ class TripsController extends GetxService{
   RxList<Trip> get tripsList => _tripsList;
 
   void getDriversTrips({required String driver}) {
-    assert(_tripsRepo.isNotEmpty);
-    _tripsList.value = _tripsRepo.where((i) => i.id.toLowerCase().contains(driver.toLowerCase())).toList();
+    _tripsList.value = _tripsRepo.where((i) => i.createdBy.toLowerCase().contains(driver.toLowerCase())).toList();
   }
 
   List<Trip> searchForTrip({required String query}) {
@@ -332,7 +332,6 @@ class TripsController extends GetxService{
     ).then((BitmapDescriptor icon) => icon);
   }
 
-
   //git routine
 
   Future<void> moveMap(LatLng location) async {
@@ -377,6 +376,17 @@ class TripsController extends GetxService{
     }
 
     Get.back();
+  }
+
+  Future<void> renameTrip (String tripId, String name) async {
+
+    ResponseHelpers.showProgressDialog('Please wait...');
+
+    Status res = await _services.renameTrip(name, tripId);
+
+    Get.back();
+
+    ResponseHelpers.showSnackbar(res.response.toString());
   }
 
 }
